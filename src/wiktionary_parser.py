@@ -2,7 +2,11 @@
 
 import re
 import attr
+import requests
 from isplit import isplit
+
+class WordNotFoundError(Exception):
+    pass
 
 
 @attr.s
@@ -15,11 +19,11 @@ class WiktionaryParser:
     def _clean_line(self, line):
         line = line.strip()
         # remove bold tags:
-        line = re.sub(r"'''(.+)'''", r"\1", line)
+        line = re.sub(r"'''(.+?)'''", r"\1", line)
         # remove italics:
-        line = re.sub(r"''(.+)''", r"\1", line)
+        line = re.sub(r"''(.+?)''", r"\1", line)
         # remove links:
-        line = re.sub(r"\[\[([\w]+)\]\]", r"\1", line)
+        line = re.sub(r"\[\[([\w\s]+)\]\]", r"\1", line)
         # more links:
         line = re.sub(r"\[\[[^|]+\|([^\]]+)\]\]", r"\1", line)
         # footnotes:
@@ -30,7 +34,6 @@ class WiktionaryParser:
         line = re.sub(r"<ref.+?/>", "", line)
         # cleanup multiple spaces:
         line = re.sub(r"\s\s+", " ", line)
-
         return line
 
     def _ready_markup_generator(self):
@@ -109,13 +112,34 @@ class WiktionaryParser:
             return self._word_data["type"]
 
     def is_conjugated(self):
-        return self._data["type"] == "Konjugierte Form"
+        try:
+            self._word_data["type"]
+        except KeyError:
+            self.word_type()
+        finally:
+            return self._word_data["type"] == "Konjugierte Form"
+
+    def is_a_declension(self):
+        try:
+            self._word_data["type"]
+        except KeyError:
+            self.word_type()
+        finally:
+            return self._word_data["type"] == "Deklinierte Form"
+
+    def is_partizip_ii(self):
+        try:
+            self._word_data["type"]
+        except KeyError:
+            self.word_type()
+        finally:
+            return self._word_data["type"] == "Partizip II"
 
     def basic_form(self):
         try:
             self._word_data["basic form"]
         except KeyError:
-            self._word_data["basic form"] = self._get_matches(r"^\{\{Grundformverweis Konj\|(\w+)\}\}")
+            self._word_data["basic form"] = self._get_matches(r"^\{\{Grundformverweis\s?\w*\|(\w+)\}\}")
         finally:
             return self._word_data["basic form"]
 
@@ -134,7 +158,7 @@ class WiktionaryParser:
             self._get_matches_for_block(
                 label="overview",
                 block_start_pattern=r"^\{\{Deutsch\s\w+\sÜbersicht$",
-                line_pattern=r"^\|([a-zA-zäöü\s*,]+)=(\w+)$",
+                line_pattern=r"^\|([a-zA-zäöü\s*,]+)=([\w\s]+)$",
             )
         finally:
             return self._word_data["overview"]
@@ -167,10 +191,22 @@ class WiktionaryParser:
             self._get_numbered_matches_for_block(
                 label="examples",
                 block_start_pattern="^\{\{Beispiele\}\}$",
-                line_pattern=r"^:\[[\s\d,\]]+(.*)$"
+                line_pattern=r"^:\[[\d\w\s,]+\]\s(.*)$"
             )
         finally:
             return self._word_data["examples"]
+
+    def synonyms(self):
+        try:
+            self._word_data["synonyms"]
+        except KeyError:
+            self._get_numbered_matches_for_block(
+                label="synonyms",
+                block_start_pattern="^\{\{Synonyme\}\}$",
+                line_pattern=r"^:\[[\s\d,\]]+(.*)$"
+            )
+        finally:
+            return self._word_data["synonyms"]
 
     def translation(self):
         try:
@@ -186,3 +222,12 @@ class WiktionaryParser:
 
     def word_data(self):
         return self._word_data
+
+
+def parse_word(word):
+    request = requests.get(r"https://de.wiktionary.org/w/index.php?title={}&action=raw".format(word))
+
+    if not request.text:
+        raise WordNotFoundError(word)
+
+    return WiktionaryParser(request.text)
