@@ -7,8 +7,7 @@
     test_doc [options] <word>
 
 Options:
-    -o FILE   --output=FILE     Path to .csv file [$HOME/words.csv].
-    -a FOLDER --audio=FOLDER    Path to Ankis "collection.media" folder [$HOME/Documents/Anki/User 1/collection.media].
+    -o FILE   --output=FILE     Path to .csv file [$HOME/Dropbox/words.csv].
     -h        --help            Show this screen.
     -V        --version         Show program version.
 
@@ -64,14 +63,9 @@ def parse_args():
     options = {}
 
     if not args["-o"]:
-        options["output"] = pathlib.Path.home() / "words.csv"
+        options["output"] = pathlib.Path.home() / "Dropbox" / "words.csv"
     else:
         options["output"] = pathlib.Path(args["-o"]).expanduser().absolute()
-
-    if not args["--audio"]:
-        options["audio"] = pathlib.Path.home() / "Documents/Anki/User 1/collection.media"
-    else:
-        options["audio"] = pathlib.Path(args["--audio"]).expanduser().absolute()
 
     options["word"] = args["<word>"]
 
@@ -302,6 +296,7 @@ def main():
     else:
         print("No additional information is available!", flush=True)
 
+    print()
     answer = prompt("Add word to file? [Y/n] ", "yn")
 
     if answer == "y" or not answer:
