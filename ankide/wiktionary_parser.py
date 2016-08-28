@@ -3,7 +3,7 @@
 import re
 import attr
 import requests
-from isplit import isplit
+from .isplit import isplit
 
 class WordNotFoundError(Exception):
     pass
