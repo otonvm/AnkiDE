@@ -4,7 +4,7 @@
 """Usage:
     test_doc -h | --help
     test_doc -V | --version
-    test_doc [options] <word>
+    test_doc [-o FILE] <word>
 
 Options:
     -o FILE   --output=FILE     Path to .csv file [$HOME/Dropbox/words.csv].
@@ -23,7 +23,7 @@ import docopt
 from microsofttranslator import Translator
 from .wiktionary_parser import parse_word, WordNotFoundError
 
-__version__ = 1.0
+__version__ = 1.2
 
 KEY = pathlib.Path(__file__).parent / "key.ini"
 
@@ -197,17 +197,17 @@ def main():
         translation = get_translation(wiktionary, chosen_word)
         print("Translation: {}".format(translation), flush=True)
 
-        print("Komparativ: {}".format(overview["Komparativ"]), flush=True)
+        print("Komparativ: {}".format(overview.get("Komparativ", None)), flush=True)
 
-        print("Superlativ: {}".format(overview["Superlativ"]), flush=True)
+        print("Superlativ: {}".format(overview.get("Superlativ", None)), flush=True)
 
         print("Beispiele: {}".format(wiktionary.examples()), flush=True)
 
         data = [
             chosen_word,
             translation,
-            overview["Komparativ"],
-            overview["Superlativ"],
+            overview.get("Komparativ", None),
+            overview.get("Superlativ", None),
             wiktionary.examples().get(1, None),
             wiktionary.examples().get(2, None),
             wiktionary.examples().get(3, None),
@@ -223,6 +223,8 @@ def main():
         if example is not None:
             if example[0] is not None:
                 example = "<i>{}</i> {}".format(example)
+            else:
+                example = example[1]
         print("Bedeutungen: {}".format(example), flush=True)
 
         print("Synonyme: {}".format(wiktionary.synonyms()[1]), flush=True)
@@ -249,6 +251,8 @@ def main():
         if example is not None:
             if example[0] is not None:
                 example = "<i>{}</i> {}".format(example)
+            else:
+                example = example[1]
         print("Bedeutungen: {}".format(example), flush=True)
 
         print("Synonyme: {}".format(wiktionary.synonyms()[1]), flush=True)
@@ -275,6 +279,64 @@ def main():
         if example is not None:
             if example[0] is not None:
                 example = "<i>{}</i> {}".format(example)
+            else:
+                example = example[1]
+        print("Bedeutungen: {}".format(example), flush=True)
+
+        print("Synonyme: {}".format(wiktionary.synonyms()), flush=True)
+
+        print("Beispiele: {}".format(wiktionary.examples()[1]), flush=True)
+
+        data = [
+            chosen_word,
+            translation,
+            example,
+            wiktionary.synonyms().get(1, None),
+            wiktionary.examples().get(1, None),
+            wiktionary.examples().get(2, None),
+            wiktionary.examples().get(3, None),
+            None,
+            None
+        ]
+
+    elif wiktionary.word_type() == "Indefinitpronomen":
+        translation = get_translation(wiktionary, chosen_word)
+        print("Translation: {}".format(translation), flush=True)
+
+        example = wiktionary.meanings().get(1, None)
+        if example is not None:
+            if example[0] is not None:
+                example = "<i>{}</i> {}".format(example)
+            else:
+                example = example[1]
+        print("Bedeutungen: {}".format(example), flush=True)
+
+        print("Synonyme: {}".format(wiktionary.synonyms()), flush=True)
+
+        print("Beispiele: {}".format(wiktionary.examples()[1]), flush=True)
+
+        data = [
+            chosen_word,
+            translation,
+            example,
+            wiktionary.synonyms().get(1, None),
+            wiktionary.examples().get(1, None),
+            wiktionary.examples().get(2, None),
+            wiktionary.examples().get(3, None),
+            None,
+            None
+        ]
+
+    elif wiktionary.word_type() == "Subjunktion":
+        translation = get_translation(wiktionary, chosen_word)
+        print("Translation: {}".format(translation), flush=True)
+
+        example = wiktionary.meanings().get(1, None)
+        if example is not None:
+            if example[0] is not None:
+                example = "<i>{}</i> {}".format(example)
+            else:
+                example = example[1]
         print("Bedeutungen: {}".format(example), flush=True)
 
         print("Synonyme: {}".format(wiktionary.synonyms()), flush=True)
@@ -295,6 +357,7 @@ def main():
 
     else:
         print("No additional information is available!", flush=True)
+        raise SystemExit(1)
 
     print()
     answer = prompt("Add word to file? [Y/n] ", "yn")
