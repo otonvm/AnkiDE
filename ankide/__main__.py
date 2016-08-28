@@ -57,6 +57,12 @@ def prompt(string, valid_responses):
         prompt(string, valid_responses)
 
 
+def write_file(file, data_list):
+    with file.open("a", encoding="utf-8", newline="") as csvfile:
+        writer = csv.writer(csvfile, dialect=csv.excel_tab)
+        writer.writerow(data_list)
+
+
 def parse_args():
     args = docopt.docopt(__doc__, version=__version__, options_first=True)
 
@@ -82,11 +88,24 @@ def main():
     try:
         wiktionary = parse_word(chosen_word)
     except WordNotFoundError:
-
+        translation = bing_translator(options["word"])
         print("Could not find word {}! It could mean >>{}<<.".format(
             chosen_word,
-            bing_translator(options["word"])
+            translation
         ), flush=True, file=sys.stderr)
+
+        print(flush=True)
+        answer = prompt("Add word to file? [Y/n] ", "yn")
+
+        if answer == "y" or not answer:
+            write_file(
+                options["output"],
+                [
+                    chosen_word,
+                    translation,
+                    None, None, None, None, None, None, None,
+                ]
+            )
         raise SystemExit(1)
 
     if wiktionary.is_conjugated():
@@ -359,13 +378,11 @@ def main():
         print("No additional information is available!", flush=True)
         raise SystemExit(1)
 
-    print()
+    print(flush=True)
     answer = prompt("Add word to file? [Y/n] ", "yn")
 
     if answer == "y" or not answer:
-        with options["output"].open("a", encoding="utf-8", newline="") as csvfile:
-            writer = csv.writer(csvfile, dialect=csv.excel_tab)
-            writer.writerow(data)
+        write_file(options["output"], data)
 
 
 if __name__ == "__main__":
